@@ -61,3 +61,6 @@ if grep -q "microsoft" /proc/version &>/dev/null; then
           # signing commits).
               export GPG_TTY=$(tty)
 fi
+# completion for config alias
+#   Requires: bash-complete-alias
+complete -F _complete_alias config
