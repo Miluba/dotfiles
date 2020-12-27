@@ -3,4 +3,3 @@
 #
 if [[ $- = *i* ]]; then . ~/.bashrc; fi
 
-#[[ -f ~/.bashrc ]] && . ~/.bashrc
