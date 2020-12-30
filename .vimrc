@@ -5,7 +5,7 @@ set autoindent
 set autowrite
 set number
 set norelativenumber
-set ruler
+" set ruler
 set showmode
 set noerrorbells
 set tabstop=2 
@@ -29,18 +29,37 @@ set textwidth=72
 set ttyfast
 set history=100
 
+" Install vim-plug if not already installed
+" (Yes I know about Vim 8 Plugins. They suck.)
+if empty(glob('~/.vim/autoload/plug.vim'))
+  silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
+      \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+  autocmd VimEnter * PlugInstall
+  echo "Don't forget to GoInstallBinaries if you're doing Go dev."
+endif
+
 call plug#begin('~/.vim/plugged')
 Plug 'tpope/vim-fugitive'
 Plug 'mbbill/undotree'
 Plug 'vim-pandoc/vim-pandoc'
+Plug 'https://gitlab.com/rwxrob/vim-pandoc-syntax-simple'
+Plug 'https://gitlab.com/rwx.gg/abnf'
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
+Plug 'pangloss/vim-javascript'
+Plug 'sheerun/vim-polyglot'
+Plug 'cespare/vim-toml'
+Plug 'PProvost/vim-ps1'
 Plug 'morhetz/gruvbox' 
+" Plug 'https://github.com/joshdick/onedark.vim.git'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 call plug#end()
 
 colorscheme gruvbox
+let g:lightline = {
+  \ 'colorscheme': 'gruvbox'
+  \ }
 hi Normal ctermbg=NONE " for transparent background
 hi SpellBad ctermbg=red " for transparent background
 hi SpellRare ctermbg=red
@@ -48,7 +67,7 @@ hi Special ctermfg=cyan
 let g:airline_theme='gruvbox'
 set background=dark
 set cmdheight=2
-set rulerformat=%55(%f\ %y%r\ %l:%c\ %p%%%) "55 effective max
+" set rulerformat=%55(%f\ %y%r\ %l:%c\ %p%%%) "55 effective max
 let mapleader=" "
 map Y y$
 noremap <up> :echoerr "Umm, use k instead"<CR>
