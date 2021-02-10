@@ -10,5 +10,7 @@ fi
 alias ll="ls -alF"
 alias la="ls -A"
 alias l="ls -CF"
-
+alias avps="cd /mnt/c/repos/azure/Analytics-Visualization-Platform/avp-micro-services"
+alias avpc="cd /mnt/c/repos/azure/Analytics-Visualization-Platform/avp-client"
+alias vbff="cd /mnt/c/repos/azure/Analytics-Visualization-Platform/vbff"
 config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'

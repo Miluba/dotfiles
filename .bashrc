@@ -48,19 +48,25 @@ esac
 #   Requires: https://github.com/BurntSushi/ripgrep (for using rg below)
 export FZF_DEFAULT_COMMAND="rg --files --hidden --follow --glob '!.git'"
 export FZF_DEFAULT_OPTS="--color=dark"
-[ -f "${HOME}/.fzf.bash" ] && source "${HOME}/.fzf.bash"
+[ -f "$HOME/.fzf.bash" ] && source "$HOME/.fzf.bash"
 
 # WSL 2 specific settings
 if grep -q "microsoft" /proc/version &>/dev/null; then
-      # Requires: https://sourceforge.net/projects/vcxsrv/ (or
-      # alternative)
-          export DISPLAY="$(/sbin/ip route | awk '/default/ { print $3
-        }'):0"
+  # Requires: https://sourceforge.net/projects/vcxsrv/ (or alternative)
+  export DISPLAY="$(/sbin/ip route | awk '/default/ { print $3 }'):0"
 
-          # Allows your gpg passphrase prompt to spawn (useful for
-          # signing commits).
-              export GPG_TTY=$(tty)
+  # Allows your gpg passphrase prompt to spawn (useful for signing commits).
+  export GPG_TTY=$(tty)
 fi
 # completion for config alias
 #   Requires: bash-complete-alias
 complete -F _complete_alias config
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# set key bindings to vi mode on bash
+set -o vi 
+
+

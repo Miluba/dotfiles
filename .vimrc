@@ -39,6 +39,8 @@ if empty(glob('~/.vim/autoload/plug.vim'))
 endif
 
 call plug#begin('~/.vim/plugged')
+" Plug 'lambdalisue/fern.vim'
+" Plug 'lambdalisue/fern-mapping-mark-children.vim'
 Plug 'tpope/vim-fugitive'
 Plug 'mbbill/undotree'
 Plug 'vim-pandoc/vim-pandoc'
@@ -50,10 +52,10 @@ Plug 'sheerun/vim-polyglot'
 Plug 'cespare/vim-toml'
 Plug 'PProvost/vim-ps1'
 Plug 'morhetz/gruvbox' 
-" Plug 'https://github.com/joshdick/onedark.vim.git'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 call plug#end()
 
 colorscheme gruvbox
@@ -104,7 +106,7 @@ let g:go_highlight_build_constraints = 1
 let g:go_highlight_diagnostic_errors = 1
 let g:go_highlight_diagnostic_warnings = 1
 let g:go_auto_type_info = 1
-let g:go_auto_sameids = 0
+let g:go_auto_sameids = 1
 let g:go_metalinter_command='golangci-lint'
 let g:go_metalinter_command='golint'
 let g:go_metalinter_autosave=1
@@ -119,6 +121,7 @@ au FileType go nmap <leader>i :GoInfo<CR>
 au FileType go nmap <leader>l :GoMetaLinter!<CR>
 
 " CoC
+let g:coc_global_extensions = ['coc-emmet', 'coc-css', 'coc-html', 'coc-json', 'coc-prettier', 'coc-tsserver', 'coc-angular', 'coc-tslint']
 " GoTo code navigation
 nmap <silent> gd <Plug>(coc-definition)
 nmap <silent> gy <Plug>(coc-type-definition)
@@ -144,3 +147,42 @@ function! s:check_back_space() abort
   let col = col('.') - 1
   return !col || getline('.')[col - 1]  =~# '\s'
 endfunction
+
+let $FZF_DEFAULT_OPTS = '--bind ctrl-a:select-all'
+
+" Customize fzf colors to match your color scheme.
+let g:fzf_colors =
+ \ { 'fg':      ['fg', 'Normal'],
+ \ 'bg':      ['bg', 'Normal'],
+ \ 'hl':      ['fg', 'Comment'],
+ \ 'fg+':     ['fg', 'CursorLine', 'CursorColumn', 'Normal'],
+ \ 'bg+':     ['bg', 'CursorLine', 'CursorColumn'],
+ \ 'hl+':     ['fg', 'Statement'],
+ \ 'info':    ['fg', 'PreProc'],
+ \ 'prompt':  ['fg', 'Conditional'],
+ \ 'pointer': ['fg', 'Exception'],
+ \ 'marker':  ['fg', 'Keyword'],
+ \ 'spinner': ['fg', 'Label'],
+ \ 'header':  ['fg', 'Comment'] }
+
+let g:fzf_action = {
+ \ 'ctrl-t': 'tab split',
+ \ 'ctrl-b': 'split',
+ \ 'ctrl-v': 'vsplit',
+ \ 'ctrl-y': {lines -> setreg('*', join(lines, "\n"))}}
+
+" Launch fzf with CTRL+P.
+nnoremap <silent><C-p> :FZF -m<CR>
+
+" Map a few common things to do with FZF.
+"nnoremap <silent><Leader><Enter>:Buffers<CR>
+nnoremap <silent><Leader><Enter> :Buffers<CR>
+nnoremap <silent><Leader>l :Lines<CR>
+
+" Allow passing optional flags into the Rg command.
+"   Example: :Rg myterm -g '*.md'
+command! -bang -nargs=* Rg
+ \ call fzf#vim#grep(
+ \ "rg --column --line-number --no-heading --color=always --smart-case " .
+ \ <q-args>, 1, fzf#vim#with_preview(), <bang>0)
+
