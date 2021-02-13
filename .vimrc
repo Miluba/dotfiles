@@ -3,6 +3,7 @@ syntax on
 set hidden
 set autoindent
 set autowrite
+set clipboard=unnamedplus
 set number
 set norelativenumber
 " set ruler
