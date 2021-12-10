@@ -28,11 +28,15 @@ export PRIVATE="$HOME/Private"
 export PICTURES="$HOME/Pictures"
 export MUSIC="$HOME/Music"
 export VIDEOS="$HOME/Videos"
+export ZETDIR="$GHREPOS/Zettelkasten"
 export TERM=xterm-256color
 export HRULEWIDTH=73
 export EDITOR=vi
 export VISUAL=vi
 export EDITOR_PREFIX=vi
+export GOPATH="$HOME/.local/share/go"
+export GOBIN="$HOME/.local/bin"
+export CGO_ENABLED=0
 export LESS_TERMCAP_mb="[35m" # magenta
 export LESS_TERMCAP_md="[33m" # yellow
 export LESS_TERMCAP_me="" # "0m"
@@ -143,7 +147,7 @@ __ps1() {
   countme="$USER$PROMPT_AT$(hostname):$dir($B)\$ "
 
   [[ $B = master || $B = main ]] && b="$r"
-  [[ -n "$B" ]] && B="$g($b$B$g)"
+  [[ -n "$B" ]] && B="$gᚡ$b$B$g"
 
   short="$u\u$g$PROMPT_AT$h\h$g:$w$dir$B$p$P$x "
   long="$g╔ $u\u$g$PROMPT_AT$h\h$g:$w$dir$B\n$g╚ $p$P$x "
@@ -174,6 +178,7 @@ alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
 alias ls='ls -h --color=auto'
+alias ?='duck'
 _have vim && alias vi=vim
 
 # ------------- source external dependencies / completion ------------
