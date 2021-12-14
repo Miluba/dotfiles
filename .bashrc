@@ -36,6 +36,7 @@ export VISUAL=vi
 export EDITOR_PREFIX=vi
 export GOPATH="$HOME/.local/share/go"
 export GOBIN="$HOME/.local/bin"
+export GO111MODULE=on
 export CGO_ENABLED=0
 export LESS_TERMCAP_mb="[35m" # magenta
 export LESS_TERMCAP_md="[33m" # yellow

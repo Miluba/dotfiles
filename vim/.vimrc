@@ -211,6 +211,9 @@ if filereadable(expand("~/.vim/autoload/plug.vim"))
   Plug 'tpope/vim-fugitive'
   Plug 'morhetz/gruvbox'
   Plug 'prabirshrestha/vim-lsp'
+  Plug 'prabirshrestha/asyncomplete.vim'
+  Plug 'prabirshrestha/asyncomplete-lsp.vim'
+  Plug 'mattn/vim-lsp-settings'
   call plug#end()
 
   " pandoc
@@ -229,7 +232,7 @@ if filereadable(expand("~/.vim/autoload/plug.vim"))
   let g:go_highlight_operators = 1
   let g:go_highlight_extra_types = 1
   let g:go_highlight_variable_declarations = 1
-  let g:go_highlight_variable_assignments = 1
+  let g:go_highlight_variable_assignments = -4
   let g:go_highlight_build_constraints = 1
   let g:go_highlight_diagnostic_errors = 1
   let g:go_highlight_diagnostic_warnings = 1
@@ -243,9 +246,33 @@ if filereadable(expand("~/.vim/autoload/plug.vim"))
   au FileType go nmap <leader>t :GoTest!<CR>
   au FileType go nmap <leader>v :GoVet!<CR>
   au FileType go nmap <leader>b :GoBuild!<CR>
+  au FileType go nmap <leader>h :GoDocBrowser!<CR>
   au FileType go nmap <leader>c :GoCoverageToggle<CR>
   au FileType go nmap <leader>i :GoInfo<CR>
   au FileType go nmap <leader>l :GoMetaLinter!<CR>
+
+  " lsp and auto completion
+  let g:asyncomplete_auto_popup = 0
+  let g:lsp_diagnostics_enabled                = 0
+  let g:lsp_diagnostics_signs_enabled          = 0
+  let g:lsp_diagnostics_virtual_text_enabled   = 0
+  let g:lsp_diagnostics_highlights_enabled     = 0
+  let g:lsp_document_code_action_signs_enabled = 0
+  let g:asyncomplete_auto_completeopt = 0
+  set completeopt=menuone,noinsert,noselect,preview
+  inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
+  inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
+  inoremap <expr> <cr>    pumvisible() ? asyncomplete#close_popup() : "\<cr>"
+  function! s:check_back_space() abort
+      let col = col('.') - 1
+      return !col || getline('.')[col - 1]  =~ '\s'
+  endfunction
+  inoremap <silent><expr> <TAB>
+    \ pumvisible() ? "\<C-n>" :
+    \ <SID>check_back_space() ? "\<TAB>" :
+    \ asyncomplete#force_refresh()
+  inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
+  autocmd! CompleteDone * if pumvisible() == 0 | pclose | endif
 else
   autocmd vimleavepre *.go !gofmt -w % " backup if fatih fails
 endif
