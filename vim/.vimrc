@@ -147,6 +147,11 @@ filetype plugin on
 " high contrast for streaming, etc.
 set background=dark
 
+" cursor shape in different modes
+let &t_SI = "\<ESC>[5 q"
+let &t_SR = "\<ESC>[3 q"
+let &t_EI = "\<ESC>[1 q"
+
 " base default color changes (gruvbox dark friendly)
 hi StatusLine ctermfg=black ctermbg=NONE
 hi StatusLineNC ctermfg=black ctermbg=NONE
@@ -169,6 +174,9 @@ hi IncSearch ctermbg=236 cterm=NONE ctermfg=darkred
 hi MatchParen ctermbg=236 ctermfg=darkred
 hi Pmenu ctermbg=NONE
 hi PmenuSel ctermbg=NONE ctermfg=darkred
+hi clear CursorLine
+hi link CursorLine CursorColumn
+hi CursorLineNr term=bold cterm=NONE ctermfg=darkred
 
 " color overrides
 au FileType * hi StatusLine ctermfg=black ctermbg=NONE
@@ -241,14 +249,15 @@ if filereadable(expand("~/.vim/autoload/plug.vim"))
   "let g:go_auto_type_info = 1 " forces 'Press ENTER' too much
   let g:go_auto_sameids = 0
   "let g:go_metalinter_command='golangci-lint'
-  "let g:go_metalinter_command='golint'
-  "let g:go_metalinter_autosave=1
+  let g:go_metalinter_command='golint'
+  let g:go_metalinter_autosave=1
   set updatetime=100
   "let g:go_gopls_analyses = { 'composites' : v:false }
+  au FileType go nmap <leader>r :GoRun!<CR>
   au FileType go nmap <leader>t :GoTest!<CR>
   au FileType go nmap <leader>v :GoVet!<CR>
   au FileType go nmap <leader>b :GoBuild!<CR>
-  au FileType go nmap <leader>h :GoDocBrowser!<CR>
+  au FileType go nmap <leader>h :GoDocBrowser<CR>
   au FileType go nmap <leader>c :GoCoverageToggle<CR>
   au FileType go nmap <leader>i :GoInfo<CR>
   au FileType go nmap <leader>l :GoMetaLinter!<CR>
@@ -367,6 +376,7 @@ nmap <F2> :call <SID>SynStack()<CR>
 set pastetoggle=<F3>
 map <F4> :set list!<CR>
 map <F5> :set cursorline!<CR>
+map <F6> :set cursorcolumn!<CR>
 map <F7> :set spell!<CR>
 map <F12> :set fdm=indent<CR>
 
