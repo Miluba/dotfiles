@@ -10,7 +10,7 @@ ln -sf "$PWD/scripts" "$HOME/Scripts"
 
 mkdir -p "$HOME/.local/bin" || true
 
-for i in vim tmux; do
+for i in vim tmux lynx; do
   cd $i && ./setup
   cd -
 done

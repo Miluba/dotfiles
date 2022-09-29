@@ -28,16 +28,18 @@ export PRIVATE="$HOME/Private"
 export PICTURES="$HOME/Pictures"
 export MUSIC="$HOME/Music"
 export VIDEOS="$HOME/Videos"
-export ZETDIR="$GHREPOS/Zettelkasten"
+export ZETDIR="$GHREPOS/Zet"
 export TERM=xterm-256color
 export HRULEWIDTH=73
 export EDITOR=vi
 export VISUAL=vi
 export EDITOR_PREFIX=vi
 export GOPATH="$HOME/.local/share/go"
-export GOBIN="$HOME/.local/bin"
+export GOBIN="/usr/lib/go-1.18/bin"
 export GO111MODULE=on
 export CGO_ENABLED=0
+export DENO_INSTALL="$HOME/.deno"
+export DENOBIN="$DENO_INSTALL/bin"
 export LESS_TERMCAP_mb="[35m" # magenta
 export LESS_TERMCAP_md="[33m" # yellow
 export LESS_TERMCAP_me="" # "0m"
@@ -91,7 +93,9 @@ pathprepend() {
 
 # remember last arg will be first in path
 pathprepend \
-  /usr/local/go/bin \
+  "$GOBIN" \
+  "$DENOBIN" \
+  "$GOPATH/bin" \
   "$HOME/.local/bin" \
   "$SCRIPTS"
 
@@ -201,3 +205,5 @@ _have helm && . <(helm completion bash)
 _have minikube && . <(minikube completion bash)
 _have mk && complete -o default -F __start_minikube mk
 _have docker && _source_if "$HOME/.local/share/docker/completion" # d
+
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash

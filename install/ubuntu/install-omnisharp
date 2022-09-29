@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -e
+user="OmniSharp"
+repo="omnisharp-roslyn"
+cmd="omnisharp"
+framework="net6.0"
+binDir="/usr/local/bin/${repo}"
+
+os=$(uname -s)
+arch=$(uname -m)
+if [[ $arch == x86_64 ]] 
+then
+    arch=x64
+fi
+osarch="${os,,?}-${arch}-${framework}"
+
+latest=$(curl -sSL "https://api.github.com/repos/$user/$repo/releases/latest" | jq -r .tag_name)
+rel="https://github.com/$user/$repo/releases/download/$latest/${cmd}-${osarch}.tar.gz"
+
+dir=$(mktemp -d)
+curl -sSL "$rel" -o "$dir/$cmd.tar.gz"
+cd "$dir"
+echo "$dir"
+tar -xzf "$cmd.tar.gz"
+echo "$binDir"
+mkdir -p "$binDir"
+mv "$dir" "$bindDir"
+rm -rf "$dir"

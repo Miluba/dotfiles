@@ -15,7 +15,8 @@ set autoindent
 set autowrite
 
 " activate line numbers
-set number
+set number 
+set relativenumber
 
 " turn col and row position on in bottom right
 set ruler " see ruf for formatting
@@ -217,52 +218,23 @@ if filereadable(expand("~/.vim/autoload/plug.vim"))
   Plug 'sheerun/vim-polyglot'
   Plug 'vim-pandoc/vim-pandoc'
   Plug 'rwxrob/vim-pandoc-syntax-simple'
-  Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
   Plug 'tpope/vim-fugitive'
   Plug 'morhetz/gruvbox'
   Plug 'prabirshrestha/vim-lsp'
   Plug 'prabirshrestha/asyncomplete.vim'
   Plug 'prabirshrestha/asyncomplete-lsp.vim'
+  Plug 'yami-beta/asyncomplete-omni.vim'
   Plug 'mattn/vim-lsp-settings'
+  Plug 'SirVer/ultisnips'
+  Plug 'thomasfaingnaert/vim-lsp-snippets'
+  Plug 'thomasfaingnaert/vim-lsp-ultisnips'
   call plug#end()
 
   " pandoc
   let g:pandoc#formatting#mode = 'h' " A'
   let g:pandoc#formatting#textwidth = 72
 
-  " golang
-  let g:go_fmt_fail_silently = 0
-  let g:go_fmt_command = 'goimports'
-  let g:go_fmt_autosave = 1
-  let g:go_gopls_enabled = 1
-  let g:go_highlight_types = 1
-  let g:go_highlight_fields = 1
-  let g:go_highlight_functions = 1
-  let g:go_highlight_function_calls = 1
-  let g:go_highlight_operators = 1
-  let g:go_highlight_extra_types = 1
-  let g:go_highlight_variable_declarations = 1
-  let g:go_highlight_variable_assignments = -4
-  let g:go_highlight_build_constraints = 1
-  let g:go_highlight_diagnostic_errors = 1
-  let g:go_highlight_diagnostic_warnings = 1
-  "let g:go_auto_type_info = 1 " forces 'Press ENTER' too much
-  let g:go_auto_sameids = 0
-  "let g:go_metalinter_command='golangci-lint'
-  let g:go_metalinter_command='golint'
-  let g:go_metalinter_autosave=1
-  set updatetime=100
-  "let g:go_gopls_analyses = { 'composites' : v:false }
-  au FileType go nmap <leader>r :GoRun!<CR>
-  au FileType go nmap <leader>t :GoTest!<CR>
-  au FileType go nmap <leader>v :GoVet!<CR>
-  au FileType go nmap <leader>b :GoBuild!<CR>
-  au FileType go nmap <leader>h :GoDocBrowser<CR>
-  au FileType go nmap <leader>c :GoCoverageToggle<CR>
-  au FileType go nmap <leader>i :GoInfo<CR>
-  au FileType go nmap <leader>l :GoMetaLinter!<CR>
-
-  " lsp and auto completion
+  " lsp setup
   let g:asyncomplete_auto_popup = 0
   let g:lsp_diagnostics_enabled                = 0
   let g:lsp_diagnostics_signs_enabled          = 0
@@ -270,46 +242,57 @@ if filereadable(expand("~/.vim/autoload/plug.vim"))
   let g:lsp_diagnostics_highlights_enabled     = 0
   let g:lsp_document_code_action_signs_enabled = 0
   let g:asyncomplete_auto_completeopt = 0
-  set completeopt=menuone,noinsert,noselect,preview
+
+  autocmd User asyncomplete_setup call asyncomplete#register_source(asyncomplete#sources#omni#get_source_options({
+  \ 'name': 'omni',
+  \ 'allowlist': ['*'],
+  \ 'blocklist': ['c', 'cpp', 'html'],
+  \ 'completor': function('asyncomplete#sources#omni#completor'),
+  \ 'config': {
+  \   'show_source_kind': 1,
+  \ },
+  \ }))
+
+  function! s:on_lsp_buffer_enabled() abort
+     setlocal omnifunc=lsp#complete
+     setlocal signcolumn=yes
+     if exists('+tagfunc') | setlocal tagfunc=lsp#tagfunc | endif
+     nmap <buffer> gd <plug>(lsp-definition)
+     nmap <buffer> gs <plug>(lsp-document-symbol-search)
+     nmap <buffer> gS <plug>(lsp-workspace-symbol-search)
+     nmap <buffer> gr <plug>(lsp-references)
+     nmap <buffer> gi <plug>(lsp-implementation)
+     nmap <buffer> gt <plug>(lsp-type-definition)
+     nmap <buffer> <leader>rn <plug>(lsp-rename)
+     nmap <buffer> [g <plug>(lsp-previous-diagnostic)
+     nmap <buffer> ]g <plug>(lsp-next-diagnostic)
+     nmap <buffer> K <plug>(lsp-hover)
+     nnoremap <buffer> <expr><c-f> lsp#scroll(+4)
+     nnoremap <buffer> <expr><c-d> lsp#scroll(-4)
+     let g:lsp_format_sync_timeout = 1000
+     autocmd! BufWritePre *.rs,*.go call execute('LspDocumentFormatSync')
+     " refer to doc to add more commands
+  endfunction
+
+  augroup lsp_install
+     au!
+    " call s:on_lsp_buffer_enabled only for languages that has the server registered.
+     autocmd User lsp_buffer_enabled call s:on_lsp_buffer_enabled()
+  augroup END
+
   inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
   inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
   inoremap <expr> <cr>    pumvisible() ? asyncomplete#close_popup() : "\<cr>"
-  function! s:check_back_space() abort
-      let col = col('.') - 1
-      return !col || getline('.')[col - 1]  =~ '\s'
-  endfunction
-  inoremap <silent><expr> <TAB>
-    \ pumvisible() ? "\<C-n>" :
-    \ <SID>check_back_space() ? "\<TAB>" :
-    \ asyncomplete#force_refresh()
-  inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
+  imap <c-@> <Plug>(asyncomplete_force_refresh)
+
+  set completeopt=menuone,noinsert,noselect,preview
   autocmd! CompleteDone * if pumvisible() == 0 | pclose | endif
-else
-  autocmd vimleavepre *.go !gofmt -w % " backup if fatih fails
+
 endif
 
-" format perl on save
-if has("eval") " vim-tiny detection
-fun! s:Perltidy()
-  let l:pos = getcurpos()
-  silent execute '%!perltidy -i=2'
-  call setpos('.', l:pos)
-endfun
-"autocmd FileType perl autocmd BufWritePre <buffer> call s:Perltidy()
-endif
-
-"autocmd vimleavepre *.md !perl -p -i -e 's,(?<!\[)my `(\w+)` (package|module|repo|command|utility),[my `\1` \2](https://gitlab.com/rwxrob/\1),g' %
-
-" fill in empty markdown links with duck.com search
-" [some thing]() -> [some thing](https://duck.com/lite?kae=t&q=some thing)
-" s,/foo,/bar,g
-"autocmd vimleavepre *.md !perl -p -i -e 's,\[([^\]]+)\]\(\),[\1](https://duck.com/lite?kd=-1&kp=-1&q=\1),g' %
 
 autocmd BufWritePost *.md silent !toemoji %
 autocmd BufWritePost *.md silent !toduck %
-
-" fill in anything beginning with @ with a link to twitch to it
-" autocmd vimleavepre *.md !perl -p -i -e 's, @(\w+), [\\@\1](https://twitch.tv/\1),g' %
 
 " make Y consitent with D and C (yank til end)
 map Y y$
@@ -382,16 +365,6 @@ map <F12> :set fdm=indent<CR>
 
 nmap <leader>2 :set paste<CR>i
 
-" disable arrow keys (vi muscle memory)
-"noremap <up> :echoerr "Umm, use k instead"<CR>
-"noremap <down> :echoerr "Umm, use j instead"<CR>
-"noremap <left> :echoerr "Umm, use h instead"<CR>
-" noremap <right> :echoerr "Umm, use l instead"<CR>
-" inoremap <up> <NOP>
-" inoremap <down> <NOP>
-" inoremap <left> <NOP>
-" inoremap <right> <NOP>
-"
 " better use of arrow keys, number increment/decrement
 nnoremap <up> <C-a>
 nnoremap <down> <C-x>
@@ -400,5 +373,3 @@ nnoremap <down> <C-x>
 noremap <C-n> <C-d>
 noremap <C-p> <C-b>
 
-" Set TMUX window name to name of file
-"au fileopened * !tmux rename-window TESTING

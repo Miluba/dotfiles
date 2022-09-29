@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Install deno. Instructions from here: https://deno.land/manual@v1.25.4/getting_started/installation
+
+curl -fsSL https://deno.land/x/install/install.sh | sh
