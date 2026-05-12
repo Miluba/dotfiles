@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(unset CDPATH; cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=generated/lib/common
+source "${SCRIPT_DIR}/lib/common"
+# shellcheck source=generated/lib/spec
+source "${SCRIPT_DIR}/lib/spec"
+# shellcheck source=generated/lib/platform
+source "${SCRIPT_DIR}/lib/platform"
+
+require_cmd jq
+require_cmd shellcheck
+REPO_ROOT="$(repo_root)"
+
+info "validating spec.json"
+spec_validate_json || die "spec.json is not valid JSON"
+spec_required_keys_ok || die "spec.json missing one of required keys: profiles, tools, files, rules"
+
+info "checking managed sources exist"
+while IFS= read -r id; do
+  src_rel="$(spec_file_source "$id")"
+  src_path="${REPO_ROOT}/${src_rel}"
+  [[ -f "$src_path" ]] || die "missing managed source for id=${id}: ${src_rel}"
+done < <(spec_file_ids)
+
+platform="$(detect_platform)"
+[[ "$platform" != "unknown" ]] || die "unsupported platform for doctor"
+spec_platform_supported "$platform" || die "spec tools do not support detected platform: $platform"
+
+info "running ShellCheck on generated scripts"
+shell_targets=()
+for f in "$REPO_ROOT"/generated/* "$REPO_ROOT"/generated/lib/* "$REPO_ROOT"/generated/installers/*; do
+  [[ -f "$f" ]] || continue
+  shell_targets+=("$f")
+done
+[[ ${#shell_targets[@]} -gt 0 ]] || die "no generated scripts found"
+shellcheck "${shell_targets[@]}"
+
+info "doctor checks passed"

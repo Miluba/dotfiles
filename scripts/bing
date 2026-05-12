@@ -1,4 +1,0 @@
-#!/bin/sh
-
-url="https://bing.com/search?=q$(urlencode "$*")"
-exec lynx "$url"

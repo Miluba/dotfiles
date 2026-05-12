@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+file_hash() {
+  local f="$1"
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$f" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$f" | awk '{print $1}'
+  else
+    printf 'MISSING_HASH_TOOL\n'
+    return 1
+  fi
+}

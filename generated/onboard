@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(unset CDPATH; cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=generated/lib/common
+source "${SCRIPT_DIR}/lib/common"
+# shellcheck source=generated/lib/spec
+source "${SCRIPT_DIR}/lib/spec"
+# shellcheck source=generated/lib/platform
+source "${SCRIPT_DIR}/lib/platform"
+# shellcheck source=generated/lib/hash
+source "${SCRIPT_DIR}/lib/hash"
+
+require_cmd jq
+REPO_ROOT="$(repo_root)"
+
+APPLY=false
+IDS=()
+DECISIONS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --apply)
+      APPLY=true
+      shift
+      ;;
+    --id)
+      IDS+=("$2")
+      shift 2
+      ;;
+    --conflict)
+      DECISIONS+=("$2")
+      shift 2
+      ;;
+    *)
+      die "unknown argument: $1"
+      ;;
+  esac
+done
+
+platform="$(detect_platform)"
+[[ "$platform" != "unknown" ]] || die "unsupported platform"
+target_key="$(target_key_for_platform "$platform")"
+
+should_include() {
+  local id="$1"
+  if [[ ${#IDS[@]} -eq 0 ]]; then
+    return 0
+  fi
+  local selected
+  for selected in "${IDS[@]}"; do
+    [[ "$id" == "$selected" ]] && return 0
+  done
+  return 1
+}
+
+decision_for() {
+  local id="$1"
+  local pair
+  for pair in "${DECISIONS[@]}"; do
+    if [[ "$pair" == "$id="* ]]; then
+      printf '%s\n' "${pair#*=}"
+      return
+    fi
+  done
+  printf 'ask\n'
+}
+
+conflicts=0
+imports=0
+printf 'ID\tSTATUS\tDETAIL\n'
+
+while IFS= read -r id; do
+  should_include "$id" || continue
+
+  src_rel="$(spec_file_source "$id")"
+  src_path="${REPO_ROOT}/${src_rel}"
+  target_raw="$(spec_file_target_raw "$id" "$target_key")"
+  target_path="$(expand_path "$target_raw")"
+
+  if [[ ! -f "$target_path" ]]; then
+    printf '%s\t%s\t%s\n' "$id" "skip" "local target missing"
+    continue
+  fi
+
+  if [[ ! -f "$src_path" ]]; then
+    status="import"
+  else
+    src_hash="$(file_hash "$src_path")"
+    tgt_hash="$(file_hash "$target_path")"
+    if [[ "$src_hash" == "$tgt_hash" ]]; then
+      printf '%s\t%s\t%s\n' "$id" "noop" "already identical"
+      continue
+    fi
+    status="conflict"
+  fi
+
+  if [[ "$status" == "conflict" ]]; then
+    conflicts=$((conflicts + 1))
+    decision="$(decision_for "$id")"
+    if [[ "$decision" == "ask" ]]; then
+      printf '%s\t%s\t%s\n' "$id" "conflict" "requires decision: keep|replace|skip"
+      continue
+    fi
+    case "$decision" in
+      keep)
+        printf '%s\t%s\t%s\n' "$id" "keep" "kept repo source"
+        continue
+        ;;
+      skip)
+        printf '%s\t%s\t%s\n' "$id" "skip" "skipped by decision"
+        continue
+        ;;
+      replace)
+        status="import"
+        ;;
+      *)
+        die "invalid conflict decision for ${id}: ${decision}"
+        ;;
+    esac
+  fi
+
+  printf '%s\t%s\t%s\n' "$id" "$status" "${target_path} -> ${src_rel}"
+  if [[ "$APPLY" == "true" ]]; then
+    mkdir -p "$(dirname "$src_path")"
+    cp "$target_path" "$src_path"
+    imports=$((imports + 1))
+  fi
+done < <(spec_file_ids)
+
+if [[ "$APPLY" == "false" ]]; then
+  info "proposal complete. re-run with --apply to import files."
+else
+  info "imports applied: ${imports}"
+fi
+
+if [[ "$conflicts" -gt 0 ]]; then
+  warn "conflicts detected: ${conflicts}"
+fi

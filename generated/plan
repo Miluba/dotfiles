@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(unset CDPATH; cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=generated/lib/common
+source "${SCRIPT_DIR}/lib/common"
+# shellcheck source=generated/lib/spec
+source "${SCRIPT_DIR}/lib/spec"
+# shellcheck source=generated/lib/platform
+source "${SCRIPT_DIR}/lib/platform"
+# shellcheck source=generated/lib/hash
+source "${SCRIPT_DIR}/lib/hash"
+
+require_cmd jq
+PLAN_FILE="$(plan_file)"
+REPO_ROOT="$(repo_root)"
+
+spec_validate_json || die "spec.json is not valid JSON"
+
+platform="$(detect_platform)"
+[[ "$platform" != "unknown" ]] || die "unsupported platform"
+target_key="$(target_key_for_platform "$platform")"
+
+tmp="$(mktemp)"
+printf '[]\n' >"$tmp"
+
+printf 'ID\tACTION\tTARGET\n'
+while IFS= read -r id; do
+  src_rel="$(spec_file_source "$id")"
+  src_path="${REPO_ROOT}/${src_rel}"
+  target_raw="$(spec_file_target_raw "$id" "$target_key")"
+  target_path="$(expand_path "$target_raw")"
+
+  action="noop"
+  reason=""
+  src_hash=""
+  tgt_hash=""
+
+  if [[ ! -f "$src_path" ]]; then
+    action="missing_source"
+    reason="source file does not exist"
+  else
+    src_hash="$(file_hash "$src_path")"
+    if [[ ! -f "$target_path" ]]; then
+      action="create"
+      reason="target file missing"
+    else
+      tgt_hash="$(file_hash "$target_path")"
+      if [[ "$src_hash" != "$tgt_hash" ]]; then
+        action="update"
+        reason="source and target differ"
+      fi
+    fi
+  fi
+
+  printf '%s\t%s\t%s\n' "$id" "$action" "$target_path"
+  jq --arg id "$id" \
+    --arg action "$action" \
+    --arg reason "$reason" \
+    --arg source "$src_path" \
+    --arg target "$target_path" \
+    --arg sourceHash "$src_hash" \
+    --arg targetHash "$tgt_hash" \
+    '. += [{id:$id,action:$action,reason:$reason,source:$source,target:$target,sourceHash:$sourceHash,targetHash:$targetHash}]' \
+    "$tmp" >"${tmp}.next"
+  mv "${tmp}.next" "$tmp"
+done < <(spec_file_ids)
+
+jq -n --arg platform "$platform" --arg generatedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --slurpfile entries "$tmp" \
+  '{platform:$platform,generatedAt:$generatedAt,entries:$entries[0]}' >"$PLAN_FILE"
+
+rm -f "$tmp"
+info "wrote plan: ${PLAN_FILE}"
