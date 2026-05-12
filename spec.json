@@ -31,122 +31,244 @@
     {
       "name": "git",
       "state": "active",
+      "commands": [
+        "git"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "platform"
+      "installPreference": "platform",
+      "packages": {
+        "debian": "git",
+        "arch": "git",
+        "windows": "Git.Git"
+      }
     },
     {
       "name": "bash",
       "state": "active",
+      "commands": [
+        "bash"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "platform"
+      "installPreference": "platform",
+      "packages": {
+        "debian": "bash",
+        "arch": "bash",
+        "windows": "Git.Git"
+      }
     },
     {
       "name": "jq",
       "state": "active",
+      "commands": [
+        "jq"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "platform"
+      "installPreference": "platform",
+      "packages": {
+        "debian": "jq",
+        "arch": "jq",
+        "windows": "jqlang.jq"
+      }
     },
     {
       "name": "shellcheck",
       "state": "active",
+      "commands": [
+        "shellcheck"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "platform"
+      "installPreference": "platform",
+      "packages": {
+        "debian": "shellcheck",
+        "arch": "shellcheck",
+        "windows": "koalaman.shellcheck"
+      }
     },
     {
       "name": "gh",
       "state": "active",
+      "commands": [
+        "gh"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "platform"
+      "installPreference": "platform",
+      "packages": {
+        "debian": "gh",
+        "arch": "github-cli",
+        "windows": "GitHub.cli"
+      }
     },
     {
       "name": "wezterm",
       "state": "active",
+      "commands": [
+        "wezterm"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "upstream"
+      "installPreference": "upstream",
+      "upstream": {
+        "debian": [
+          "curl -fsSL https://apt.fury.io/wez/gpg.key | ${SUDO}gpg --dearmor -o /usr/share/keyrings/wezterm-fury.gpg",
+          "printf 'deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/wez/ * *\\n' | ${SUDO}tee /etc/apt/sources.list.d/wezterm.list >/dev/null",
+          "${SUDO}apt-get update",
+          "${SUDO}apt-get install -y wezterm"
+        ],
+        "arch": [
+          "${SUDO}pacman -S --noconfirm wezterm"
+        ],
+        "windows": [
+          "winget install --id wez.wezterm --exact --source winget"
+        ]
+      }
     },
     {
       "name": "nvim",
       "state": "active",
+      "commands": [
+        "nvim"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "upstream"
+      "installPreference": "upstream",
+      "upstream": {
+        "debian": [
+          "curl -fL -o /tmp/nvim-linux-x86_64.tar.gz https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz",
+          "${SUDO}rm -rf /opt/nvim-linux-x86_64",
+          "${SUDO}tar -C /opt -xzf /tmp/nvim-linux-x86_64.tar.gz",
+          "${SUDO}ln -sf /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim",
+          "rm -f /tmp/nvim-linux-x86_64.tar.gz"
+        ],
+        "arch": [
+          "${SUDO}pacman -S --noconfirm neovim"
+        ],
+        "windows": [
+          "winget install --id Neovim.Neovim --exact --source winget"
+        ]
+      }
     },
     {
       "name": "opencode",
       "state": "active",
+      "commands": [
+        "opencode"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "upstream"
+      "installPreference": "upstream",
+      "upstream": {
+        "debian": [
+          "curl -fsSL https://opencode.ai/install | bash"
+        ],
+        "arch": [
+          "curl -fsSL https://opencode.ai/install | bash"
+        ],
+        "windows": [
+          "winget install --id opencode.open --exact --source winget"
+        ]
+      }
     },
     {
       "name": "keepassxc",
       "state": "active",
+      "commands": [
+        "keepassxc"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "platform"
+      "installPreference": "platform",
+      "packages": {
+        "debian": "keepassxc",
+        "arch": "keepassxc",
+        "windows": "KeePassXCTeam.KeePassXC"
+      }
     },
     {
       "name": "ripgrep",
       "state": "active",
+      "commands": [
+        "rg"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "platform"
+      "installPreference": "platform",
+      "packages": {
+        "debian": "ripgrep",
+        "arch": "ripgrep",
+        "windows": "BurntSushi.ripgrep.MSVC"
+      }
     },
     {
       "name": "fd",
       "state": "active",
+      "commands": [
+        "fd",
+        "fdfind"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "platform"
+      "installPreference": "platform",
+      "packages": {
+        "debian": "fd-find",
+        "arch": "fd",
+        "windows": "sharkdp.fd"
+      }
     },
     {
       "name": "eza",
       "state": "active",
+      "commands": [
+        "eza"
+      ],
       "platforms": [
         "windows",
         "debian",
         "arch"
       ],
-      "installPreference": "platform"
+      "installPreference": "platform",
+      "packages": {
+        "debian": "eza",
+        "arch": "eza",
+        "windows": "eza-community.eza"
+      }
     }
   ],
   "files": [

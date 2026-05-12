@@ -219,6 +219,7 @@ alias gitl="git log -n 5 --graph --decorate --oneline"
 alias gp="git push"
 alias gptags="git push origin --tags"
 alias wezterm='wezterm start --always-maximize'
+_have fdfind && ! _have fd && alias fd='fdfind'
 
 # lynx search helpers (aliased to ?, ??, ???)
 # Config follows XDG spec: ~/.config/lynx/

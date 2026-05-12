@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(unset CDPATH; cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=generated/lib/common
+source "${SCRIPT_DIR}/lib/common"
+# shellcheck source=generated/lib/spec
+source "${SCRIPT_DIR}/lib/spec"
+# shellcheck source=generated/lib/platform
+source "${SCRIPT_DIR}/lib/platform"
+# shellcheck source=generated/lib/install
+source "${SCRIPT_DIR}/lib/install"
+
+require_cmd jq
+
+PROFILE="developer"
+DRY_RUN=0
+
+usage() {
+  cat <<'EOF'
+Usage: generated/install-tools [--profile minimal|developer] [--dry-run]
+
+Installs tools for a profile from spec.json by calling per-tool installers.
+EOF
+  install_usage_common
+}
+
+while (($#)); do
+  case "$1" in
+    --profile)
+      [[ $# -ge 2 ]] || die "--profile requires a value"
+      PROFILE="$2"
+      shift 2
+      ;;
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      die "unknown argument: $1"
+      ;;
+  esac
+done
+
+spec_validate_json || die "spec.json is not valid JSON"
+tools_json="$(profile_tools_json "$PROFILE")"
+
+platform="$(detect_platform)"
+[[ "$platform" != "unknown" ]] || die "unsupported platform"
+if [[ "$platform" == "debian" && "$DRY_RUN" -eq 0 ]]; then
+  sudo_prefix="$(install_sudo_prefix "$platform")"
+  install_run "$DRY_RUN" "${sudo_prefix}apt-get update"
+fi
+
+while IFS= read -r tool; do
+  installer="${SCRIPT_DIR}/installers/${tool}"
+  [[ -x "$installer" ]] || die "missing installer script: ${installer}"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    "$installer" --dry-run
+  else
+    "$installer"
+  fi
+done < <(jq -r '.[]' <<<"$tools_json")
+
+info "profile tool installation complete: ${PROFILE}"

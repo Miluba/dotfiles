@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Expects common/spec/platform to be sourced first.
+
+install_usage_common() {
+  cat <<'EOF'
+Options:
+  --dry-run       Print commands without executing
+  -h, --help      Show help
+EOF
+}
+
+install_run() {
+  local dry_run="$1"
+  local cmd="$2"
+  if [[ "$dry_run" -eq 1 ]]; then
+    printf '[DRY-RUN] %s\n' "$cmd"
+    return
+  fi
+  eval "$cmd"
+}
+
+install_sudo_prefix() {
+  local platform="$1"
+  if [[ "$platform" == "windows" ]]; then
+    printf '\n'
+    return
+  fi
+  if [[ "$(id -u)" -eq 0 ]]; then
+    printf '\n'
+  else
+    printf 'sudo '
+  fi
+}
+
+install_tool_json() {
+  local tool="$1"
+  jq -c --arg tool "$tool" '.tools[] | select(.name == $tool)' "$(spec_file)"
+}
+
+install_tool_pref() {
+  local tool="$1"
+  jq -r --arg tool "$tool" '.tools[] | select(.name == $tool) | .installPreference' "$(spec_file)"
+}
+
+install_tool_present() {
+  local tool="$1"
+  local commands_json
+  commands_json="$(jq -c --arg tool "$tool" '.tools[] | select(.name == $tool) | (.commands // [$tool])' "$(spec_file)")"
+  while IFS= read -r cmd; do
+    if command -v "$cmd" >/dev/null 2>&1; then
+      return 0
+    fi
+  done < <(jq -r '.[]' <<<"$commands_json")
+  return 1
+}
+
+install_tool_platform_package() {
+  local tool="$1"
+  local platform="$2"
+  jq -r --arg tool "$tool" --arg platform "$platform" '.tools[] | select(.name == $tool) | .packages[$platform]' "$(spec_file)"
+}
+
+install_tool_upstream_steps() {
+  local tool="$1"
+  local platform="$2"
+  jq -r --arg tool "$tool" --arg platform "$platform" '.tools[] | select(.name == $tool) | .upstream[$platform][]?' "$(spec_file)"
+}
+
+install_from_spec() {
+  local tool="$1"
+  local dry_run="$2"
+
+  local platform
+  local pref
+  local pkg
+  local sudo_prefix
+
+  platform="$(detect_platform)"
+  [[ "$platform" != "unknown" ]] || die "unsupported platform"
+  pref="$(install_tool_pref "$tool")"
+  [[ -n "$pref" && "$pref" != "null" ]] || die "tool not found in spec.json: ${tool}"
+
+  sudo_prefix="$(install_sudo_prefix "$platform")"
+
+  if install_tool_present "$tool"; then
+    info "already present: ${tool}"
+    return
+  fi
+
+  info "installing ${tool} (platform=${platform}, preference=${pref})"
+  case "$pref" in
+    platform)
+      pkg="$(install_tool_platform_package "$tool" "$platform")"
+      [[ -n "$pkg" && "$pkg" != "null" ]] || die "missing package mapping for ${tool} on ${platform}"
+      case "$platform" in
+        windows)
+          install_run "$dry_run" "winget install --id ${pkg} --exact --source winget"
+          ;;
+        debian)
+          install_run "$dry_run" "${sudo_prefix}apt-get install -y ${pkg}"
+          ;;
+        arch)
+          install_run "$dry_run" "${sudo_prefix}pacman -S --noconfirm ${pkg}"
+          ;;
+        *)
+          die "unsupported platform: ${platform}"
+          ;;
+      esac
+      ;;
+    upstream)
+      mapfile -t steps < <(install_tool_upstream_steps "$tool" "$platform")
+      [[ ${#steps[@]} -gt 0 ]] || die "missing upstream steps for ${tool} on ${platform}"
+      for step in "${steps[@]}"; do
+        step="${step//\$\{SUDO\}/$sudo_prefix}"
+        install_run "$dry_run" "$step"
+      done
+      ;;
+    *)
+      die "unsupported installPreference for ${tool}: ${pref}"
+      ;;
+  esac
+}
+
+profile_tools_json() {
+  local profile="$1"
+  local tools_tmp
+  local extends_tmp
+  tools_tmp="$(mktemp)"
+  extends_tmp="$(mktemp)"
+  printf '[]\n' >"$tools_tmp"
+
+  _collect_profile_tools() {
+    local current="$1"
+    jq -r --arg p "$current" '.profiles[$p].extends[]?' "$(spec_file)" >"$extends_tmp"
+    while IFS= read -r parent; do
+      [[ -n "$parent" ]] || continue
+      _collect_profile_tools "$parent"
+    done <"$extends_tmp"
+
+    jq -n --arg p "$current" --slurpfile acc "$tools_tmp" --slurpfile spec "$(spec_file)" '$acc[0] + ($spec[0].profiles[$p].tools // [])' >"${tools_tmp}.next"
+    mv "${tools_tmp}.next" "$tools_tmp"
+  }
+
+  _collect_profile_tools "$profile"
+  jq -c 'unique' "$tools_tmp"
+  rm -f "$tools_tmp" "$extends_tmp"
+}

@@ -30,7 +30,7 @@ spec_platform_supported "$platform" || die "spec tools do not support detected p
 
 info "running ShellCheck on generated scripts"
 shell_targets=()
-for f in "$REPO_ROOT"/generated/* "$REPO_ROOT"/generated/lib/*; do
+for f in "$REPO_ROOT"/generated/* "$REPO_ROOT"/generated/lib/* "$REPO_ROOT"/generated/installers/*; do
   [[ -f "$f" ]] || continue
   shell_targets+=("$f")
 done
