@@ -1,7 +1,23 @@
 local wezterm = require 'wezterm'
 local act = wezterm.action
+local mux = wezterm.mux
 
 local config = wezterm.config_builder()
+local DEFAULT_WORKSPACE = 'main'
+
+wezterm.on('gui-startup', function(cmd)
+  local _, _, window = mux.spawn_window(cmd or { workspace = DEFAULT_WORKSPACE })
+  window:gui_window():maximize()
+end)
+
+wezterm.on('format-tab-title', function(tab)
+  local title = tab.tab_title
+  if title and #title > 0 then
+    return title
+  end
+  return tab.active_pane.title
+end)
+
 config.font = wezterm.font('MonoLisa')
 config.freetype_load_flags = 'NO_HINTING'
 config.font_size = 12
@@ -43,6 +59,42 @@ config.keys = {
   { key = 'v', mods = 'LEADER', action = act.ActivateCopyMode },
   { key = 'y', mods = 'LEADER', action = act.CopyTo 'Clipboard' },
   { key = 'p', mods = 'LEADER', action = act.PasteFrom 'Clipboard' },
+  {
+    key = ',',
+    mods = 'LEADER',
+    action = act.PromptInputLine {
+      description = 'Rename tab',
+      action = wezterm.action_callback(function(window, pane, line)
+        if line and #line > 0 then
+          window:active_tab():set_title(line)
+        end
+      end),
+    },
+  },
+  {
+    key = '<',
+    mods = 'LEADER|SHIFT',
+    action = wezterm.action_callback(function(window, pane)
+      window:active_tab():set_title('')
+    end),
+  },
+  { key = 'A', mods = 'LEADER|SHIFT', action = act.SwitchToWorkspace { name = DEFAULT_WORKSPACE } },
+  { key = 'w', mods = 'LEADER', action = act.ShowLauncherArgs { flags = 'FUZZY|WORKSPACES' } },
+  {
+    key = 's',
+    mods = 'LEADER',
+    action = act.PromptInputLine {
+      description = 'Switch/Create workspace',
+      action = wezterm.action_callback(function(window, pane, line)
+        if line and #line > 0 then
+          window:perform_action(act.SwitchToWorkspace { name = line }, pane)
+        end
+      end),
+    },
+  },
+  { key = 'S', mods = 'LEADER|SHIFT', action = act.ShowLauncherArgs { flags = 'FUZZY|WORKSPACES' } },
+  { key = 'T', mods = 'LEADER|SHIFT', action = act.ShowTabNavigator },
+  { key = ' ', mods = 'LEADER', action = act.ShowLauncher },
 }
 
 config.mouse_bindings = {
