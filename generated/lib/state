@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ensure_state_file() {
+  local file
+  file="$(state_file)"
+  if [[ ! -f "$file" ]]; then
+    mkdir -p "$(dirname "$file")"
+    printf '{"files":{},"tools":{}}\n' >"$file"
+  fi
+}
+
+state_upsert_file() {
+  local id="$1"
+  local source="$2"
+  local target="$3"
+  local source_hash="$4"
+  local target_hash="$5"
+  local now
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  local file
+  file="$(state_file)"
+
+  local tmp
+  tmp="$(mktemp)"
+  jq --arg id "$id" \
+    --arg source "$source" \
+    --arg target "$target" \
+    --arg sh "$source_hash" \
+    --arg th "$target_hash" \
+    --arg ts "$now" \
+    '.files[$id] = {source:$source,target:$target,sourceHash:$sh,targetHash:$th,lastSynced:$ts}' \
+    "$file" >"$tmp"
+  mv "$tmp" "$file"
+}

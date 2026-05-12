@@ -1,4 +1,19 @@
 {
-  "files": {},
+  "files": {
+    "git-config": {
+      "source": "/home/miluba/Repos/github.com/miluba/dotfiles/config/git/config",
+      "target": "/home/miluba/.gitconfig",
+      "sourceHash": "0e95a1ccf138bc16cc020a9378921718cfbab4fc4f63a6c3b4579359ed39c15b",
+      "targetHash": "0e95a1ccf138bc16cc020a9378921718cfbab4fc4f63a6c3b4579359ed39c15b",
+      "lastSynced": "2026-05-12T12:32:13Z"
+    },
+    "shared-dotfiles-skill": {
+      "source": "/home/miluba/Repos/github.com/miluba/dotfiles/config/agents/skills/dotfiles/SKILL.md",
+      "target": "/home/miluba/.agents/skills/dotfiles/SKILL.md",
+      "sourceHash": "962591540cdf29995d0cb9efe78c05f7ec7fc1d25fba05f76d9089594b7d5507",
+      "targetHash": "962591540cdf29995d0cb9efe78c05f7ec7fc1d25fba05f76d9089594b7d5507",
+      "lastSynced": "2026-05-12T12:32:13Z"
+    }
+  },
   "tools": {}
 }

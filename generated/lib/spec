@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Expects common to be sourced first.
+
+spec_validate_json() {
+  jq empty "$(spec_file)" >/dev/null
+}
+
+spec_required_keys_ok() {
+  jq -e 'has("profiles") and has("tools") and has("files") and has("rules")' "$(spec_file)" >/dev/null
+}
+
+spec_file_ids() {
+  jq -r '.files[].id' "$(spec_file)"
+}
+
+spec_file_source() {
+  local id="$1"
+  jq -r --arg id "$id" '.files[] | select(.id == $id) | .source' "$(spec_file)"
+}
+
+spec_file_target_raw() {
+  local id="$1"
+  local target_key="$2"
+  jq -r --arg id "$id" --arg key "$target_key" '.files[] | select(.id == $id) | .targets[$key]' "$(spec_file)"
+}
+
+spec_platform_supported() {
+  local platform="$1"
+  jq -e --arg p "$platform" '.tools | all(.platforms | index($p))' "$(spec_file)" >/dev/null
+}

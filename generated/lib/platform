@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+detect_platform() {
+  local uname_out
+  uname_out="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  if [[ "$uname_out" == mingw* || "$uname_out" == msys* || "$uname_out" == cygwin* ]]; then
+    printf 'windows\n'
+    return
+  fi
+
+  if [[ -r /etc/os-release ]]; then
+    local os_id
+    os_id="$(grep '^ID=' /etc/os-release | cut -d '=' -f2 | tr -d '"')"
+    case "$os_id" in
+      debian|ubuntu|linuxmint|pop)
+        printf 'debian\n'
+        return
+        ;;
+      arch|cachyos)
+        printf 'arch\n'
+        return
+        ;;
+    esac
+  fi
+
+  printf 'unknown\n'
+}
+
+target_key_for_platform() {
+  local platform="$1"
+  if [[ "$platform" == "windows" ]]; then
+    printf 'windows\n'
+  else
+    printf 'linux\n'
+  fi
+}

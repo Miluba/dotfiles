@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+COMMON_DIR="$(unset CDPATH; cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(unset CDPATH; cd "${COMMON_DIR}/../.." && pwd)"
+
+repo_root() {
+  printf '%s\n' "$REPO_ROOT"
+}
+
+spec_file() {
+  printf '%s/spec.json\n' "$REPO_ROOT"
+}
+
+state_file() {
+  printf '%s/state/state.json\n' "$REPO_ROOT"
+}
+
+plan_file() {
+  printf '%s/state/plan.json\n' "$REPO_ROOT"
+}
+
+log() {
+  printf '[%s] %s\n' "$1" "$2"
+}
+
+info() {
+  log INFO "$1"
+}
+
+warn() {
+  log WARN "$1"
+}
+
+error() {
+  log ERROR "$1" >&2
+}
+
+die() {
+  error "$1"
+  exit 1
+}
+
+require_cmd() {
+  command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+expand_path() {
+  local raw="$1"
+  local xdg="${XDG_CONFIG_HOME:-${HOME}/.config}"
+  raw="${raw//\$\{HOME\}/$HOME}"
+  raw="${raw//\$\{XDG_CONFIG_HOME\}/$xdg}"
+  printf '%s\n' "$raw"
+}

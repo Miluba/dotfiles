@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(unset CDPATH; cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=generated/lib/common
+source "${SCRIPT_DIR}/lib/common"
+# shellcheck source=generated/lib/hash
+source "${SCRIPT_DIR}/lib/hash"
+# shellcheck source=generated/lib/state
+source "${SCRIPT_DIR}/lib/state"
+
+require_cmd jq
+PLAN_FILE="$(plan_file)"
+
+if [[ ! -f "$PLAN_FILE" ]]; then
+  die "missing plan file: ${PLAN_FILE}. Run generated/plan first."
+fi
+
+entries_count="$(jq '.entries | length' "$PLAN_FILE")"
+[[ "$entries_count" -gt 0 ]] || die "plan file has no entries"
+
+ensure_state_file
+
+applied=0
+while IFS= read -r entry; do
+  id="$(jq -r '.id' <<<"$entry")"
+  action="$(jq -r '.action' <<<"$entry")"
+  source_path="$(jq -r '.source' <<<"$entry")"
+  target_path="$(jq -r '.target' <<<"$entry")"
+
+case "$action" in
+  noop)
+    continue
+    ;;
+  create|update)
+    mkdir -p "$(dirname "$target_path")"
+    cp "$source_path" "$target_path"
+    src_hash="$(file_hash "$source_path")"
+    tgt_hash="$(file_hash "$target_path")"
+    state_upsert_file "$id" "$source_path" "$target_path" "$src_hash" "$tgt_hash"
+    applied=$((applied + 1))
+    info "applied ${action}: ${id} -> ${target_path}"
+    ;;
+  *)
+    warn "skipping ${id}, unsupported action: ${action}"
+    ;;
+esac
+done < <(jq -c '.entries[]' "$PLAN_FILE")
+
+info "sync complete, changes applied: ${applied}"

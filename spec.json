@@ -154,7 +154,7 @@
       "id": "bashrc",
       "source": "config/bash/bashrc",
       "targets": {
-        "linux": "${XDG_CONFIG_HOME}/bash/bashrc",
+        "linux": "${HOME}/.bashrc",
         "windows": "${HOME}/.bashrc"
       }
     },
@@ -162,7 +162,7 @@
       "id": "git-config",
       "source": "config/git/config",
       "targets": {
-        "linux": "${XDG_CONFIG_HOME}/git/config",
+        "linux": "${HOME}/.gitconfig",
         "windows": "${HOME}/.gitconfig"
       }
     },
@@ -175,6 +175,30 @@
       },
       "xdgException": true,
       "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "wezterm-config",
+      "source": "config/wezterm/wezterm.lua",
+      "targets": {
+        "linux": "${XDG_CONFIG_HOME}/wezterm/wezterm.lua",
+        "windows": "${HOME}/.wezterm.lua"
+      }
+    },
+    {
+      "id": "nvim-init",
+      "source": "config/nvim/init.lua",
+      "targets": {
+        "linux": "${XDG_CONFIG_HOME}/nvim/init.lua",
+        "windows": "${HOME}/AppData/Local/nvim/init.lua"
+      }
+    },
+    {
+      "id": "nvim-pack-lock",
+      "source": "config/nvim/nvim-pack-lock.json",
+      "targets": {
+        "linux": "${XDG_CONFIG_HOME}/nvim/nvim-pack-lock.json",
+        "windows": "${HOME}/AppData/Local/nvim/nvim-pack-lock.json"
+      }
     }
   ],
   "rules": {
