@@ -191,14 +191,6 @@
         "linux": "${XDG_CONFIG_HOME}/nvim/init.lua",
         "windows": "${HOME}/AppData/Local/nvim/init.lua"
       }
-    },
-    {
-      "id": "nvim-pack-lock",
-      "source": "config/nvim/nvim-pack-lock.json",
-      "targets": {
-        "linux": "${XDG_CONFIG_HOME}/nvim/nvim-pack-lock.json",
-        "windows": "${HOME}/AppData/Local/nvim/nvim-pack-lock.json"
-      }
     }
   ],
   "rules": {
