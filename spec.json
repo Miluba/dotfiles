@@ -1,0 +1,193 @@
+{
+  "$schema": "./schema/spec.schema.json",
+  "profiles": {
+    "minimal": {
+      "description": "Minimal cross-platform base needed to run, edit, and validate the dotfiles system.",
+      "tools": [
+        "git",
+        "bash",
+        "jq",
+        "shellcheck",
+        "gh",
+        "wezterm",
+        "nvim"
+      ]
+    },
+    "developer": {
+      "description": "Extended cross-platform developer tooling.",
+      "extends": [
+        "minimal"
+      ],
+      "tools": [
+        "opencode",
+        "keepassxc",
+        "ripgrep",
+        "fd",
+        "eza"
+      ]
+    }
+  },
+  "tools": [
+    {
+      "name": "git",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "platform"
+    },
+    {
+      "name": "bash",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "platform"
+    },
+    {
+      "name": "jq",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "platform"
+    },
+    {
+      "name": "shellcheck",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "platform"
+    },
+    {
+      "name": "gh",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "platform"
+    },
+    {
+      "name": "wezterm",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "upstream"
+    },
+    {
+      "name": "nvim",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "upstream"
+    },
+    {
+      "name": "opencode",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "upstream"
+    },
+    {
+      "name": "keepassxc",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "platform"
+    },
+    {
+      "name": "ripgrep",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "platform"
+    },
+    {
+      "name": "fd",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "platform"
+    },
+    {
+      "name": "eza",
+      "state": "active",
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "platform"
+    }
+  ],
+  "files": [
+    {
+      "id": "bashrc",
+      "source": "config/bash/bashrc",
+      "targets": {
+        "linux": "${XDG_CONFIG_HOME}/bash/bashrc",
+        "windows": "${HOME}/.bashrc"
+      }
+    },
+    {
+      "id": "git-config",
+      "source": "config/git/config",
+      "targets": {
+        "linux": "${XDG_CONFIG_HOME}/git/config",
+        "windows": "${HOME}/.gitconfig"
+      }
+    },
+    {
+      "id": "shared-dotfiles-skill",
+      "source": "config/agents/skills/dotfiles/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/dotfiles/SKILL.md",
+        "windows": "${HOME}/.agents/skills/dotfiles/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    }
+  ],
+  "rules": {
+    "crossPlatformFirst": true,
+    "preferStandaloneBinaries": true,
+    "avoidRuntimeDependenciesUnlessRequired": true,
+    "noWSL": true,
+    "noSymlinks": true,
+    "noHardlinks": true,
+    "shellcheckRequired": true,
+    "generatedScripts": true,
+    "requirePlanBeforeApply": true,
+    "neverDeleteUnmanagedFiles": true,
+    "secretProtection": true
+  }
+}

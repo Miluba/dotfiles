@@ -1,4 +1,0 @@
-#!/bin/bash
-
-modprobe -r tuxedo_keyboard-ite
-modprobe tuxedo_keyboard-ite
