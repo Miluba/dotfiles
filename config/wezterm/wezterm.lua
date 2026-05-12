@@ -74,6 +74,19 @@ config.keys = {
   {
     key = '<',
     mods = 'LEADER|SHIFT',
+    action = act.PromptInputLine {
+      description = 'Rename workspace',
+      action = wezterm.action_callback(function(window, pane, line)
+        local current = window:active_workspace()
+        if line and #line > 0 and line ~= current then
+          window:perform_action(act.SwitchToWorkspace { name = line }, pane)
+        end
+      end),
+    },
+  },
+  {
+    key = '.',
+    mods = 'LEADER',
     action = wezterm.action_callback(function(window, pane)
       window:active_tab():set_title('')
     end),
@@ -92,7 +105,6 @@ config.keys = {
       end),
     },
   },
-  { key = 'S', mods = 'LEADER|SHIFT', action = act.ShowLauncherArgs { flags = 'FUZZY|WORKSPACES' } },
   { key = 'T', mods = 'LEADER|SHIFT', action = act.ShowTabNavigator },
   { key = ' ', mods = 'LEADER', action = act.ShowLauncher },
 }
