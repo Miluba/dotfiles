@@ -273,20 +273,22 @@
   ],
   "files": [
     {
-      "id": "bashrc",
-      "source": "config/bash/bashrc",
+      "id": "nvim-init",
+      "source": "config/nvim/init.lua",
       "targets": {
-        "linux": "${HOME}/.bashrc",
-        "windows": "${HOME}/.bashrc"
+        "linux": "${XDG_CONFIG_HOME}/nvim/init.lua",
+        "windows": "${HOME}/AppData/Local/nvim/init.lua"
       }
     },
     {
-      "id": "git-config",
-      "source": "config/git/config",
+      "id": "shared-diagnose-skill",
+      "source": "config/agents/skills/diagnose/SKILL.md",
       "targets": {
-        "linux": "${HOME}/.gitconfig",
-        "windows": "${HOME}/.gitconfig"
-      }
+        "linux": "${HOME}/.agents/skills/diagnose/SKILL.md",
+        "windows": "${HOME}/.agents/skills/diagnose/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
     },
     {
       "id": "shared-dotfiles-skill",
@@ -294,6 +296,116 @@
       "targets": {
         "linux": "${HOME}/.agents/skills/dotfiles/SKILL.md",
         "windows": "${HOME}/.agents/skills/dotfiles/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "shared-grill-me-skill",
+      "source": "config/agents/skills/grill-me/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/grill-me/SKILL.md",
+        "windows": "${HOME}/.agents/skills/grill-me/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "shared-grill-with-docs-skill",
+      "source": "config/agents/skills/grill-with-docs/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/grill-with-docs/SKILL.md",
+        "windows": "${HOME}/.agents/skills/grill-with-docs/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "shared-handoff-skill",
+      "source": "config/agents/skills/handoff/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/handoff/SKILL.md",
+        "windows": "${HOME}/.agents/skills/handoff/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "shared-improve-codebase-architecture-skill",
+      "source": "config/agents/skills/improve-codebase-architecture/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/improve-codebase-architecture/SKILL.md",
+        "windows": "${HOME}/.agents/skills/improve-codebase-architecture/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "shared-prototype-skill",
+      "source": "config/agents/skills/prototype/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/prototype/SKILL.md",
+        "windows": "${HOME}/.agents/skills/prototype/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "shared-setup-matt-pocock-skills-skill",
+      "source": "config/agents/skills/setup-matt-pocock-skills/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/setup-matt-pocock-skills/SKILL.md",
+        "windows": "${HOME}/.agents/skills/setup-matt-pocock-skills/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "shared-tdd-skill",
+      "source": "config/agents/skills/tdd/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/tdd/SKILL.md",
+        "windows": "${HOME}/.agents/skills/tdd/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "shared-to-issues-skill",
+      "source": "config/agents/skills/to-issues/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/to-issues/SKILL.md",
+        "windows": "${HOME}/.agents/skills/to-issues/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "shared-to-prd-skill",
+      "source": "config/agents/skills/to-prd/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/to-prd/SKILL.md",
+        "windows": "${HOME}/.agents/skills/to-prd/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "shared-triage-skill",
+      "source": "config/agents/skills/triage/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/triage/SKILL.md",
+        "windows": "${HOME}/.agents/skills/triage/SKILL.md"
+      },
+      "xdgException": true,
+      "reason": "Shared agent skill discovery convention is home-based."
+    },
+    {
+      "id": "shared-write-a-skill-skill",
+      "source": "config/agents/skills/write-a-skill/SKILL.md",
+      "targets": {
+        "linux": "${HOME}/.agents/skills/write-a-skill/SKILL.md",
+        "windows": "${HOME}/.agents/skills/write-a-skill/SKILL.md"
       },
       "xdgException": true,
       "reason": "Shared agent skill discovery convention is home-based."
@@ -307,11 +419,19 @@
       }
     },
     {
-      "id": "nvim-init",
-      "source": "config/nvim/init.lua",
+      "id": "git-config",
+      "source": "config/git/config",
       "targets": {
-        "linux": "${XDG_CONFIG_HOME}/nvim/init.lua",
-        "windows": "${HOME}/AppData/Local/nvim/init.lua"
+        "linux": "${HOME}/.gitconfig",
+        "windows": "${HOME}/.gitconfig"
+      }
+    },
+    {
+      "id": "bashrc",
+      "source": "config/bash/bashrc",
+      "targets": {
+        "linux": "${HOME}/.bashrc",
+        "windows": "${HOME}/.bashrc"
       }
     }
   ],
