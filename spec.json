@@ -23,7 +23,12 @@
         "keepassxc",
         "ripgrep",
         "fd",
-        "eza"
+        "eza",
+        "go",
+        "bun",
+        "gopls",
+        "typescript-language-server",
+        "microsandbox"
       ]
     }
   },
@@ -174,6 +179,121 @@
       }
     },
     {
+      "name": "go",
+      "state": "active",
+      "commands": [
+        "go"
+      ],
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "platform",
+      "packages": {
+        "debian": "golang-go",
+        "arch": "go",
+        "windows": "GoLang.Go"
+      }
+    },
+    {
+      "name": "gopls",
+      "state": "active",
+      "commands": [
+        "gopls"
+      ],
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "upstream",
+      "upstream": {
+        "debian": [
+          "go install golang.org/x/tools/gopls@latest"
+        ],
+        "arch": [
+          "go install golang.org/x/tools/gopls@latest"
+        ],
+        "windows": [
+          "go install golang.org/x/tools/gopls@latest"
+        ]
+      }
+    },
+    {
+      "name": "bun",
+      "state": "active",
+      "commands": [
+        "bun",
+        "bunx"
+      ],
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "upstream",
+      "upstream": {
+        "debian": [
+          "curl -fsSL https://bun.sh/install | bash"
+        ],
+        "arch": [
+          "${SUDO}pacman -S --noconfirm bun"
+        ],
+        "windows": [
+          "winget install --id Oven-sh.Bun --exact --source winget"
+        ]
+      }
+    },
+    {
+      "name": "typescript-language-server",
+      "state": "active",
+      "commands": [
+        "typescript-language-server"
+      ],
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "upstream",
+      "upstream": {
+        "debian": [
+          "bun add -g typescript typescript-language-server"
+        ],
+        "arch": [
+          "bun add -g typescript typescript-language-server"
+        ],
+        "windows": [
+          "bun add -g typescript typescript-language-server"
+        ]
+      }
+    },
+    {
+      "name": "microsandbox",
+      "state": "active",
+      "commands": [
+        "msb"
+      ],
+      "platforms": [
+        "windows",
+        "debian",
+        "arch"
+      ],
+      "installPreference": "upstream",
+      "upstream": {
+        "debian": [
+          "curl -fsSL https://install.microsandbox.dev | sh"
+        ],
+        "arch": [
+          "curl -fsSL https://install.microsandbox.dev | sh"
+        ],
+        "windows": [
+          "curl -fsSL https://install.microsandbox.dev | bash"
+        ]
+      }
+    },
+    {
       "name": "opencode",
       "state": "active",
       "commands": [
@@ -278,6 +398,14 @@
       "targets": {
         "linux": "${XDG_CONFIG_HOME}/nvim/init.lua",
         "windows": "${HOME}/AppData/Local/nvim/init.lua"
+      }
+    },
+    {
+      "id": "opencode-config",
+      "source": "config/opencode/opencode.json",
+      "targets": {
+        "linux": "${XDG_CONFIG_HOME}/opencode/opencode.json",
+        "windows": "${HOME}/.config/opencode/opencode.json"
       }
     },
     {

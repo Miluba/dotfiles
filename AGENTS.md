@@ -69,6 +69,10 @@ Core Unix tooling remains canonical knowledge.
 
 Modern tools should enhance workflows, not replace foundational understanding.
 
+When adding a new tool to `spec.json`, also add a matching installer at `generated/installers/<tool-name>`.
+
+`generated/doctor` must enforce installer coverage for all tools defined in `spec.json`.
+
 ## Authentication policy
 
 Prefer tool-native authentication over secret management.
