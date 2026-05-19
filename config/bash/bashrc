@@ -99,6 +99,7 @@ pathprepend() {
 # remember last arg will be first in path
 pathprepend \
 	"$HOME/.local/bin" \
+	"$HOME/.bun/bin" \
 	"$HOME/.local/go/bin" \
 	/usr/local/go/bin \
 	/usr/local/bin \

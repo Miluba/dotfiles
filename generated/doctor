@@ -28,6 +28,12 @@ platform="$(detect_platform)"
 [[ "$platform" != "unknown" ]] || die "unsupported platform for doctor"
 spec_platform_supported "$platform" || die "spec tools do not support detected platform: $platform"
 
+info "checking installer coverage for spec tools"
+while IFS= read -r tool_name; do
+  installer_path="${REPO_ROOT}/generated/installers/${tool_name}"
+  [[ -x "$installer_path" ]] || die "missing executable installer for tool=${tool_name}: ${installer_path}"
+done < <(jq -r '.tools[].name' "$(spec_file)")
+
 info "running ShellCheck on generated scripts"
 shell_targets=()
 for f in "$REPO_ROOT"/generated/* "$REPO_ROOT"/generated/lib/* "$REPO_ROOT"/generated/installers/*; do
