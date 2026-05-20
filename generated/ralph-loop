@@ -1,0 +1,496 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(unset CDPATH; cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=generated/lib/common
+source "${SCRIPT_DIR}/lib/common"
+
+require_cmd jq
+require_cmd gh
+require_cmd git
+
+STATE_DIR="$(repo_root)/state"
+RALPH_STATE_FILE="${STATE_DIR}/ralph-loop.json"
+
+MAX_ITERATIONS=100
+MAX_RETRIES_PER_ISSUE=3
+MAX_CI_FIX_PASSES=3
+DRY_RUN=0
+ISSUE_LABEL="ready-for-agent"
+CLAIM_LABEL="in-progress"
+READY_LABEL="ready-for-human"
+FAIL_LABEL="needs-triage"
+PROGRESS_FILE="progress.txt"
+IMAGE="${RALPH_IMAGE:-debian-slim}"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  generated/ralph-loop run [options]
+  generated/ralph-loop list
+  generated/ralph-loop open <issue-number>
+  generated/ralph-loop clean [--dry-run]
+
+Options for run:
+  --max-iterations <n>        Max issues per run (default: 100)
+  --max-retries-per-issue <n> Max retries per issue (default: 3)
+  --max-ci-fix-passes <n>     Max CI fix passes per issue (default: 3)
+  --image <name>              Microsandbox image (default: debian-slim)
+  --dry-run                   Print actions without mutating
+  -h, --help                  Show help
+EOF
+}
+
+ensure_state() {
+  mkdir -p "$STATE_DIR"
+  if [[ ! -f "$RALPH_STATE_FILE" ]]; then
+    printf '{"issues":{},"runs":[]}\n' >"$RALPH_STATE_FILE"
+  fi
+}
+
+repo_from_origin() {
+  local remote
+  remote="$(git remote get-url origin)"
+  if [[ "$remote" =~ github.com[:/]([^/]+)/([^/.]+)(\.git)?$ ]]; then
+    printf '%s/%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+    return
+  fi
+  die "cannot parse GitHub repo from origin remote"
+}
+
+slugify() {
+  local s="$1"
+  s="$(tr '[:upper:]' '[:lower:]' <<<"$s")"
+  s="$(tr -cs 'a-z0-9' '-' <<<"$s")"
+  s="${s#-}"
+  s="${s%-}"
+  [[ -n "$s" ]] || s="issue"
+  printf '%s\n' "$s"
+}
+
+next_issue() {
+  local repo="$1"
+  gh issue list --repo "$repo" --state open --label "$ISSUE_LABEL" --limit 100 --json number,title,url,createdAt \
+    --jq 'sort_by(.createdAt) | .[0]'
+}
+
+claim_issue() {
+  local repo="$1"
+  local issue="$2"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    info "[dry-run] claim #${issue}: ${ISSUE_LABEL} -> ${CLAIM_LABEL}"
+    return
+  fi
+  gh issue edit "$issue" --repo "$repo" --remove-label "$ISSUE_LABEL" --add-label "$CLAIM_LABEL" >/dev/null
+}
+
+mark_ready_for_human() {
+  local repo="$1"
+  local issue="$2"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    info "[dry-run] mark #${issue}: ${CLAIM_LABEL} -> ${READY_LABEL}"
+    return
+  fi
+  gh issue edit "$issue" --repo "$repo" --remove-label "$CLAIM_LABEL" --add-label "$READY_LABEL" >/dev/null
+}
+
+mark_failed() {
+  local repo="$1"
+  local issue="$2"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    info "[dry-run] mark #${issue}: +${FAIL_LABEL}, -${CLAIM_LABEL}"
+    return
+  fi
+  gh issue edit "$issue" --repo "$repo" --remove-label "$CLAIM_LABEL" --add-label "$FAIL_LABEL" >/dev/null
+}
+
+issue_comment() {
+  local repo="$1"
+  local issue="$2"
+  local message="$3"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    info "[dry-run] comment #${issue}: ${message}"
+    return
+  fi
+  gh issue comment "$issue" --repo "$repo" --body "$message" >/dev/null
+}
+
+ensure_worktree() {
+  local branch="$1"
+  local wt="$2"
+  if [[ -d "$wt/.git" || -f "$wt/.git" ]]; then
+    return
+  fi
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    info "[dry-run] git worktree add \"${wt}\" -b \"${branch}\""
+    return
+  fi
+  mkdir -p "$(dirname "$wt")"
+  git worktree add "$wt" -b "$branch"
+}
+
+ensure_progress_file() {
+  local wt="$1"
+  local path="${wt}/${PROGRESS_FILE}"
+  if [[ -f "$path" ]]; then
+    return
+  fi
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    info "[dry-run] create ${path}"
+    return
+  fi
+  printf '# Ralph loop progress\n\n' >"$path"
+}
+
+render_prompt() {
+  local repo="$1"
+  local issue="$2"
+  local title="$3"
+  local url="$4"
+  local branch="$5"
+  local wt="$6"
+  cat <<EOF
+You are Ralph, an autonomous coding agent operating in an AFK issue loop.
+
+You are working on exactly ONE GitHub issue in this iteration.
+
+Context:
+- Repository: ${repo}
+- Issue number: ${issue}
+- Issue title: ${title}
+- Issue URL: ${url}
+- Branch name: ${branch} (already checked out)
+- Local worktree path: ${wt}
+- Progress file: ${PROGRESS_FILE}
+
+Strict rules:
+1) Work ONLY on this issue. Do not switch scope.
+2) Make focused, reviewable commits on this branch. Multiple commits are allowed.
+3) Run relevant validation for the changes you made.
+4) If blocked, explain exactly why in progress notes and stop.
+5) Never merge PRs.
+6) Never modify git remotes.
+7) Never use destructive git history rewrites.
+8) Do not output <promise>COMPLETE</promise> unless all completion criteria below are satisfied.
+
+Required workflow:
+1) Read the issue and infer acceptance criteria from issue body/comments.
+2) Implement the minimal complete solution for this issue.
+3) Run relevant checks for touched areas (tests, lint, typecheck, build, or project-specific validation).
+4) Commit your changes with clear commit message(s).
+5) Append your progress to the progress.txt file.
+Use this to leave a note for the next person working in the codebase.
+6) Include a PR summary in this exact format:
+
+PR_TITLE: <title>
+PR_BODY:
+## What
+- ...
+## Why
+- ...
+## Validation
+- ...
+## Risks
+- ...
+
+Completion criteria (ALL required):
+- Issue scope implemented for this issue only
+- Changes committed on current branch
+- Relevant checks run and passing, or explicitly marked not applicable with reason
+- Progress appended to progress.txt
+- PR summary included in output
+
+Output contract:
+- If and only if all completion criteria are satisfied, include this exact token on its own line at the end:
+<promise>COMPLETE</promise>
+- If not complete, DO NOT print that token.
+EOF
+}
+
+run_attempt() {
+  local wt="$1"
+  local prompt="$2"
+  local output_file="$3"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    info "[dry-run] msb run ${IMAGE} -- opencode run --dangerously-skip-permissions <prompt>"
+    printf '[dry-run]\n' >"$output_file"
+    return
+  fi
+  (
+    cd "$wt"
+    msb run "$IMAGE" -- opencode run --dangerously-skip-permissions "$prompt" | tee "$output_file"
+  )
+}
+
+push_branch() {
+  local wt="$1"
+  local branch="$2"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    info "[dry-run] git -C \"${wt}\" push -u origin \"${branch}\""
+    return
+  fi
+  git -C "$wt" push -u origin "$branch"
+}
+
+ensure_pr() {
+  local repo="$1"
+  local branch="$2"
+  local issue="$3"
+  local title="$4"
+
+  local existing
+  existing="$(gh pr list --repo "$repo" --head "$branch" --state all --limit 1 --json url --jq '.[0].url // ""')"
+  if [[ -n "$existing" ]]; then
+    printf '%s\n' "$existing"
+    return
+  fi
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    printf 'https://github.com/%s/pull/dry-run\n' "$repo"
+    return
+  fi
+
+  gh pr create --repo "$repo" --head "$branch" --base master \
+    --title "[Ralph] #${issue} ${title}" \
+    --body "Automated Ralph loop PR for issue #${issue}."
+}
+
+update_issue_state() {
+  local issue="$1"
+  local branch="$2"
+  local wt="$3"
+  local status="$4"
+  local pr_url="$5"
+  local attempts="$6"
+  local tmp
+  tmp="$(mktemp)"
+  jq --arg issue "$issue" \
+    --arg branch "$branch" \
+    --arg wt "$wt" \
+    --arg status "$status" \
+    --arg prUrl "$pr_url" \
+    --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --argjson attempts "$attempts" \
+    '.issues[$issue] = {issue:($issue|tonumber),branch:$branch,worktree:$wt,status:$status,prUrl:$prUrl,attempts:$attempts,updatedAt:$ts}' \
+    "$RALPH_STATE_FILE" >"$tmp"
+  mv "$tmp" "$RALPH_STATE_FILE"
+}
+
+append_run_state() {
+  local result="$1"
+  local processed="$2"
+  local tmp
+  tmp="$(mktemp)"
+  jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg result "$result" --argjson processed "$processed" \
+    '.runs += [{timestamp:$ts,result:$result,processed:$processed}]' \
+    "$RALPH_STATE_FILE" >"$tmp"
+  mv "$tmp" "$RALPH_STATE_FILE"
+}
+
+process_issue() {
+  local repo="$1"
+  local issue_json="$2"
+
+  local issue title url branch wt
+  issue="$(jq -r '.number' <<<"$issue_json")"
+  title="$(jq -r '.title' <<<"$issue_json")"
+  url="$(jq -r '.url' <<<"$issue_json")"
+  branch="ralph/${issue}-$(slugify "$title")"
+  wt="$(repo_root)/.worktrees/ralph-${issue}-$(slugify "$title")"
+
+  info "processing issue #${issue}: ${title}"
+  claim_issue "$repo" "$issue"
+  ensure_worktree "$branch" "$wt"
+  ensure_progress_file "$wt"
+
+  local attempt=0
+  local prev_count=""
+  local unchanged_streak=0
+
+  while (( attempt < MAX_RETRIES_PER_ISSUE )); do
+    attempt=$((attempt + 1))
+    info "attempt ${attempt}/${MAX_RETRIES_PER_ISSUE}"
+
+    local prompt output_file
+    prompt="$(render_prompt "$repo" "$issue" "$title" "$url" "$branch" "$wt")"
+    output_file="$(mktemp)"
+    run_attempt "$wt" "$prompt" "$output_file"
+
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      rm -f "$output_file"
+      update_issue_state "$issue" "$branch" "$wt" "dry-run" "" "$attempt"
+      return 0
+    fi
+
+    local commit_count
+    commit_count="$(git -C "$wt" rev-list --count HEAD)"
+    if [[ -n "$prev_count" && "$commit_count" == "$prev_count" ]]; then
+      unchanged_streak=$((unchanged_streak + 1))
+    else
+      unchanged_streak=0
+    fi
+    prev_count="$commit_count"
+
+    if grep -q '<promise>COMPLETE</promise>' "$output_file"; then
+      rm -f "$output_file"
+      push_branch "$wt" "$branch"
+      local pr_url
+      pr_url="$(ensure_pr "$repo" "$branch" "$issue" "$title")"
+      mark_ready_for_human "$repo" "$issue"
+      issue_comment "$repo" "$issue" "Ralph opened PR: ${pr_url}\n\nWorktree: ${wt}"
+      update_issue_state "$issue" "$branch" "$wt" "${READY_LABEL}" "$pr_url" "$attempt"
+      return 0
+    fi
+
+    rm -f "$output_file"
+
+    if (( unchanged_streak >= 2 )); then
+      mark_failed "$repo" "$issue"
+      issue_comment "$repo" "$issue" "Ralph loop stalled: no new commits across two consecutive attempts."
+      update_issue_state "$issue" "$branch" "$wt" "${FAIL_LABEL}" "" "$attempt"
+      return 1
+    fi
+  done
+
+  mark_failed "$repo" "$issue"
+  issue_comment "$repo" "$issue" "Ralph loop failed after ${MAX_RETRIES_PER_ISSUE} attempts."
+  update_issue_state "$issue" "$branch" "$wt" "${FAIL_LABEL}" "" "$MAX_RETRIES_PER_ISSUE"
+  return 1
+}
+
+run_loop() {
+  local repo="$1"
+  ensure_state
+  local processed=0
+  while (( processed < MAX_ITERATIONS )); do
+    local issue_json
+    issue_json="$(next_issue "$repo")"
+    if [[ -z "$issue_json" || "$issue_json" == "null" ]]; then
+      info "no eligible issues"
+      append_run_state "queue-empty" "$processed"
+      return
+    fi
+    processed=$((processed + 1))
+    process_issue "$repo" "$issue_json" || true
+  done
+  append_run_state "max-iterations" "$processed"
+  info "max iterations reached: ${MAX_ITERATIONS}"
+}
+
+list_state() {
+  ensure_state
+  jq -r '.issues | to_entries[]? | "#\(.value.issue)\t\(.value.status)\t\(.value.branch)\t\(.value.worktree)\t\(.value.prUrl)"' "$RALPH_STATE_FILE"
+}
+
+open_state() {
+  local issue="$1"
+  ensure_state
+  local wt
+  wt="$(jq -r --arg issue "$issue" '.issues[$issue].worktree // ""' "$RALPH_STATE_FILE")"
+  [[ -n "$wt" ]] || die "issue not found in state: ${issue}"
+  printf '%s\n' "$wt"
+}
+
+clean_state() {
+  ensure_state
+  while IFS= read -r wt; do
+    [[ -n "$wt" ]] || continue
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      info "[dry-run] git worktree remove \"${wt}\""
+      continue
+    fi
+    [[ -d "$wt" ]] || continue
+    git worktree remove "$wt" || warn "failed removing worktree: ${wt}"
+  done < <(jq -r '.issues | to_entries[]? | select(.value.status == "ready-for-human" or .value.status == "needs-triage") | .value.worktree' "$RALPH_STATE_FILE")
+
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    git worktree prune
+  fi
+}
+
+parse_run_opts() {
+  while (($#)); do
+    case "$1" in
+      --max-iterations)
+        [[ $# -ge 2 ]] || die "--max-iterations requires value"
+        MAX_ITERATIONS="$2"
+        shift 2
+        ;;
+      --max-retries-per-issue)
+        [[ $# -ge 2 ]] || die "--max-retries-per-issue requires value"
+        MAX_RETRIES_PER_ISSUE="$2"
+        shift 2
+        ;;
+      --max-ci-fix-passes)
+        [[ $# -ge 2 ]] || die "--max-ci-fix-passes requires value"
+        MAX_CI_FIX_PASSES="$2"
+        shift 2
+        ;;
+      --image)
+        [[ $# -ge 2 ]] || die "--image requires value"
+        IMAGE="$2"
+        shift 2
+        ;;
+      --dry-run)
+        DRY_RUN=1
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        die "unknown run option: $1"
+        ;;
+    esac
+  done
+}
+
+main() {
+  [[ $# -ge 1 ]] || {
+    usage
+    exit 1
+  }
+
+  local sub="$1"
+  shift
+
+  case "$sub" in
+    run)
+      parse_run_opts "$@"
+      local repo
+      repo="$(repo_from_origin)"
+      info "repo=${repo}, image=${IMAGE}, max_iterations=${MAX_ITERATIONS}, max_retries_per_issue=${MAX_RETRIES_PER_ISSUE}, max_ci_fix_passes=${MAX_CI_FIX_PASSES}"
+      run_loop "$repo"
+      ;;
+    list)
+      list_state
+      ;;
+    open)
+      [[ $# -eq 1 ]] || die "usage: generated/ralph-loop open <issue-number>"
+      open_state "$1"
+      ;;
+    clean)
+      while (($#)); do
+        case "$1" in
+          --dry-run)
+            DRY_RUN=1
+            shift
+            ;;
+          *)
+            die "unknown clean option: $1"
+            ;;
+        esac
+      done
+      clean_state
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      die "unknown subcommand: ${sub}"
+      ;;
+  esac
+}
+
+main "$@"
